@@ -1,0 +1,275 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Kuis Pintar</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;
+  display:flex;justify-content:center;align-items:center;
+  padding:15px;
+  font-family:Arial,sans-serif;
+  color:white;
+  background:linear-gradient(135deg,#101d42,#542b81);
+}
+.container{
+  width:100%;max-width:550px;
+  background:#ffffff12;
+  border:1px solid #ffffff30;
+  border-radius:22px;padding:25px;
+  box-shadow:0 12px 40px #0005;
+}
+h1{text-align:center;color:#ffe66d;margin-top:0}
+.subtitle{text-align:center;color:#ddd}
+.info{
+  display:flex;justify-content:space-between;
+  gap:10px;margin:20px 0;
+  font-weight:bold;color:#ffe66d;
+}
+.progress{
+  height:9px;background:#ffffff30;
+  border-radius:10px;overflow:hidden;
+}
+#bar{
+  height:100%;width:0%;
+  background:#53f5a5;transition:width .3s;
+}
+#question{font-size:21px;line-height:1.5}
+#answers{display:grid;gap:10px;margin-top:20px}
+.answer{
+  padding:14px;text-align:left;
+  color:white;background:#ffffff12;
+  border:2px solid #ffffff30;
+  border-radius:12px;font-size:16px;
+  cursor:pointer;transition:.2s;
+}
+.answer:hover:not(:disabled){
+  background:#ffffff28;border-color:#ffe66d;
+}
+.answer:disabled{cursor:default}
+.correct{background:#167b48!important;border-color:#53f5a5!important}
+.wrong{background:#a92d43!important;border-color:#ff6b81!important}
+#feedback{min-height:26px;margin:16px 0;font-weight:bold}
+.main-btn{
+  width:100%;padding:14px;
+  border:0;border-radius:12px;
+  background:#ffe66d;color:#252044;
+  font-weight:bold;font-size:17px;cursor:pointer;
+}
+.hidden{display:none}
+#result{text-align:center}
+#finalScore{font-size:42px;color:#ffe66d;font-weight:bold}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🧠 KUIS PINTAR</h1>
+  <p class="subtitle">Uji pengetahuanmu dan jadilah juara!</p>
+
+  <div id="quiz">
+    <div class="info">
+      <span id="number">Soal 1/10</span>
+      <span>🏆 Skor: <span id="score">0</span></span>
+      <span>⏱️ <span id="timer">15</span>s</span>
+    </div>
+
+    <div class="progress"><div id="bar"></div></div>
+    <h2 id="question">Pertanyaan akan muncul di sini</h2>
+    <div id="answers"></div>
+    <p id="feedback"></p>
+    <button id="next" class="main-btn hidden">Soal Berikutnya ➜</button>
+  </div>
+
+  <div id="result" class="hidden">
+    <h2>🎉 KUIS SELESAI!</h2>
+    <p>Skor akhir kamu:</p>
+    <div id="finalScore">0/100</div>
+    <h2 id="grade"></h2>
+    <p id="message"></p>
+    <button class="main-btn" onclick="startGame()">🔄 Main Lagi</button>
+  </div>
+</div>
+
+<script>
+const questions=[
+ {
+  q:"Ibu kota negara Indonesia adalah...",
+  a:["Bandung","Jakarta","Surabaya","Medan"],
+  c:1
+ },
+ {
+  q:"Hasil dari 12 × 8 adalah...",
+  a:["86","92","96","108"],
+  c:2
+ },
+ {
+  q:"Planet yang dikenal sebagai Planet Merah adalah...",
+  a:["Venus","Mars","Jupiter","Saturnus"],
+  c:1
+ },
+ {
+  q:"Hewan tercepat di darat adalah...",
+  a:["Singa","Kuda","Cheetah","Harimau"],
+  c:2
+ },
+ {
+  q:"Berapa jumlah hari dalam satu minggu?",
+  a:["5 hari","6 hari","7 hari","8 hari"],
+  c:2
+ },
+ {
+  q:"Lambang kimia untuk air adalah...",
+  a:["CO2","O2","NaCl","H2O"],
+  c:3
+ },
+ {
+  q:"Benua terbesar di dunia adalah...",
+  a:["Afrika","Asia","Eropa","Australia"],
+  c:1
+ },
+ {
+  q:"Hasil dari 144 ÷ 12 adalah...",
+  a:["10","11","12","14"],
+  c:2
+ },
+ {
+  q:"Organ tubuh yang memompa darah adalah...",
+  a:["Paru-paru","Ginjal","Jantung","Lambung"],
+  c:2
+ },
+ {
+  q:"Warna yang dihasilkan dari campuran merah dan kuning adalah...",
+  a:["Hijau","Ungu","Oranye","Biru"],
+  c:2
+ }
+];
+
+let index=0,score=0,timeLeft=15;
+let timerId=null,answered=false,gameActive=false;
+
+const $=id=>document.getElementById(id);
+
+function startGame(){
+  clearInterval(timerId);
+  index=0;
+  score=0;
+  timeLeft=15;
+  answered=false;
+  gameActive=true;
+  $("score").textContent=score;
+  $("quiz").classList.remove("hidden");
+  $("result").classList.add("hidden");
+  showQuestion();
+}
+
+function showQuestion(){
+  clearInterval(timerId);
+  if(!gameActive)return;
+
+  answered=false;
+  timeLeft=15;
+  const item=questions[index];
+
+  $("number").textContent=`Soal ${index+1}/${questions.length}`;
+  $("question").textContent=item.q;
+  $("timer").textContent=timeLeft;
+  $("bar").style.width=(index/questions.length*100)+"%";
+  $("feedback").textContent="";
+  $("next").classList.add("hidden");
+  $("answers").innerHTML="";
+
+  item.a.forEach((answer,i)=>{
+    const btn=document.createElement("button");
+    btn.className="answer";
+    btn.textContent=String.fromCharCode(65+i)+". "+answer;
+    btn.onclick=()=>checkAnswer(i);
+    $("answers").appendChild(btn);
+  });
+
+  timerId=setInterval(()=>{
+    if(!gameActive||answered)return;
+    timeLeft--;
+    $("timer").textContent=timeLeft;
+
+    if(timeLeft<=0){
+      clearInterval(timerId);
+      checkAnswer(-1);
+    }
+  },1000);
+}
+
+function checkAnswer(choice){
+  if(answered||!gameActive)return;
+  answered=true;
+  clearInterval(timerId);
+
+  const item=questions[index];
+  const buttons=$("answers").querySelectorAll("button");
+
+  buttons.forEach((btn,i)=>{
+    btn.disabled=true;
+    if(i===item.c)btn.classList.add("correct");
+    if(i===choice&&choice!==item.c)btn.classList.add("wrong");
+  });
+
+  if(choice===item.c){
+    score+=10;
+    $("score").textContent=score;
+    $("feedback").textContent="✅ Benar! Kamu mendapat 10 poin.";
+    $("feedback").style.color="#53f5a5";
+  }else if(choice===-1){
+    $("feedback").textContent=
+      "⏰ Waktu habis! Jawaban: "+item.a[item.c];
+    $("feedback").style.color="#ffe66d";
+  }else{
+    $("feedback").textContent=
+      "❌ Kurang tepat! Jawaban: "+item.a[item.c];
+    $("feedback").style.color="#ff8b9b";
+  }
+
+  $("bar").style.width=((index+1)/questions.length*100)+"%";
+  $("next").textContent=index===questions.length-1
+    ?"Lihat Hasil 🏆":"Soal Berikutnya ➜";
+  $("next").classList.remove("hidden");
+}
+
+$("next").onclick=()=>{
+  if(!answered)return;
+
+  if(index<questions.length-1){
+    index++;
+    showQuestion();
+  }else{
+    finishGame();
+  }
+};
+
+function finishGame(){
+  clearInterval(timerId);
+  gameActive=false;
+  $("quiz").classList.add("hidden");
+  $("result").classList.remove("hidden");
+  $("finalScore").textContent=score+"/100";
+
+  if(score>=90){
+    $("grade").textContent="🌟 Luar Biasa!";
+    $("message").textContent="Pengetahuanmu hebat sekali!";
+  }else if(score>=70){
+    $("grade").textContent="👏 Bagus!";
+    $("message").textContent="Kamu sudah menguasai banyak hal.";
+  }else if(score>=50){
+    $("grade").textContent="💪 Terus Berlatih!";
+    $("message").textContent="Sedikit lagi kamu bisa lebih hebat.";
+  }else{
+    $("grade").textContent="📚 Jangan Menyerah!";
+    $("message").textContent="Coba lagi dan tingkatkan skormu.";
+  }
+}
+
+startGame();
+</script>
+</body>
+</html>
